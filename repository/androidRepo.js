@@ -39,15 +39,16 @@ function queryReportList (appName, buildNum, pageIndex, pageSize) {
   const dir = `${path.reportDir}/${appName}`
   const fileNames = fs
     .readdirSync(dir)
+    .filter((name) => name.includes('-'))
     .filter((name) => !buildNum || name.startsWith(buildNum))
   let fileInfos = fileNames.map((fileName) => fileInfoWithTime(dir, fileName))
   fileInfos = fileInfos.sort((a, b) => b.birthtimeMs - a.birthtimeMs)
 
   //   fileNames = fileNames.reverse()
   console.log(fileInfos)
-  const num = pageIndex == null || pageIndex < 1 ? 1 : pageIndex
+  const num = parseInt(!pageIndex || pageIndex < 1 ? 1 : pageIndex)
   const size = parseInt(
-    pageSize == null || pageSize <= 0 || pageSize > 50 ? 10 : pageSize
+    !pageSize || pageSize <= 0 || pageSize > 50 ? 10 : pageSize
   )
   const start = (num - 1) * size
   const end = start + size
