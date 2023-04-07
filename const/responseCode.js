@@ -1,3 +1,3 @@
 module.exports = {
-  LOG_IllegalArgument: 10001,
-};
+  LOG_IllegalArgument: 10001
+}
