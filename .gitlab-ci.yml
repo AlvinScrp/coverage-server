@@ -1,0 +1,11 @@
+pages:
+  #部署服务器（仅下载即可）
+  stage: deploy
+  variables:
+    targetPath_working: /Users/mac/coverage/coverage-server
+  script:
+    - echo $CI_PROJECT_DIR
+    - echo $targetPath_working
+  # 只针对master分支生效
+  only:
+    - main
