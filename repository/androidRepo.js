@@ -1,5 +1,6 @@
-const coverageDir = '/Users/canglong/Downloads/coverage2'
-
+const coverageDir = process.env.COVERAGE_ROOT_DIR
+console.log(coverageDir)
+// const coverageDir = '/canglong/coverage'
 // 备份文件：Android/backup/FXJ/100
 
 const path = {
@@ -37,32 +38,35 @@ function queryLogList (appName, buildNum) {
 // 报告文件 Android/report/FXJ/200-8-20230322161838
 function queryReportList (appName, buildNum, pageIndex, pageSize) {
   const dir = `${path.reportDir}/${appName}`
-  const fileNames = fs
+  let fileNames = fs
     .readdirSync(dir)
-    .filter((name) => name.includes('-'))
     .filter((name) => !buildNum || name.startsWith(buildNum))
-  let fileInfos = fileNames.map((fileName) => fileInfoWithTime(dir, fileName))
-  fileInfos = fileInfos.sort((a, b) => b.birthtimeMs - a.birthtimeMs)
+    .filter((name) => {
+      const ss = name.split('-')
+      return ss.length === 3 && ss[2].length === 14
+    })
+    .sort((a, b) => {
+      return b.slice(b.length - 14) - a.slice(a.length - 14)
+    })
 
   //   fileNames = fileNames.reverse()
-  console.log(fileInfos)
   const num = parseInt(!pageIndex || pageIndex < 1 ? 1 : pageIndex)
   const size = parseInt(
     !pageSize || pageSize <= 0 || pageSize > 50 ? 10 : pageSize
   )
   const start = (num - 1) * size
   const end = start + size
-  const count = fileInfos.length
+  const count = fileNames.length
 
   if (start >= count) {
     return []
   }
 
-  fileInfos = fileInfos.slice(start, Math.min(end, count))
+  fileNames = fileNames.slice(start, Math.min(end, count))
 
-  const reporties = fileInfos.map((fileInfo) =>
-    toReportJson(dir, appName, fileInfo)
-  )
+  const reporties = fileNames
+    .map((fileName) => toReportJson(dir, appName, fileName))
+    .filter((report) => report)
   //   console.log(reporties);
   return {
     pageNo: num,
@@ -72,41 +76,33 @@ function queryReportList (appName, buildNum, pageIndex, pageSize) {
   }
 }
 
-function fileInfoWithTime (dir, name) {
-  const stat = fs.statSync(`${dir}/${name}`)
-  const birthtimeMs = stat.birthtimeMs
-  return { name, birthtimeMs }
-}
 // /Users/canglong/Downloads/coverage/report/FXJ/200-8-20230316141640
-function toReportJson (dir, appName, fileInfo) {
-  const fileName = fileInfo.name
+function toReportJson (dir, appName, fileName) {
   const ss = fileName.split('-')
   if (ss.length < 2) {
     return null
   }
-  const [buildNum, relativebuildNum] = ss
+  const [buildNum, relativebuildNum, time] = ss
 
-  const timestamp = fileInfo.birthtimeMs // 一个时间戳，单位为毫秒
-  const date = new Date(timestamp)
-  const year = date.getFullYear() // 年份
-  const month = prefixZero(date.getMonth() + 1) // 月份，注意月份从 0 开始，需要加 1
-  const day = prefixZero(date.getDate()) // 日
-  const hours = prefixZero(date.getHours()) // 小时
-  const minutes = prefixZero(date.getMinutes()) // 分钟
-  const seconds = prefixZero(date.getSeconds()) // 秒
-
-  const formatTime = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`
-
-  const increment = relativebuildNum > 0
-  const previewUrl = `${dir}/${fileInfo.name}`
+  let formatTime = time
+  if (time.length === 14) {
+    formatTime = ''
+      .concat(time.slice(0, 4)).concat('年')
+      .concat(time.slice(4, 6)).concat('月')
+      .concat(time.slice(6, 8)).concat('日 ')
+      .concat(time.slice(8, 10)).concat(':')
+      .concat(time.slice(10, 12)).concat(':')
+      .concat(time.slice(12, 14))
+  }
 
   return {
     appName,
+    fileName,
     buildNum,
     relativebuildNum,
-    increment,
+    increment: relativebuildNum > 0,
     formatTime,
-    previewUrl,
+    previewUrl: `http://iosci.webuyops.com:9003/Android/report/${appName}/${fileName}/index.html`,
     downloadUrl: `http://file-tx.webuyops.com/download/mobile-coco/${appName}-${fileName}.zip`
   }
 }
@@ -123,8 +119,8 @@ function toReportJson (dir, appName, fileInfo) {
  * @param {*} reqBody
  */
 function createReport (reqBody) {
-  let { appName, buildNum, logs, increment, relativebuildNum } = reqBody
-  if (!relativebuildNum || !increment) {
+  let { appName, buildNum, logs, relativebuildNum } = reqBody
+  if (!relativebuildNum) {
     relativebuildNum = 0
   }
 
@@ -156,26 +152,13 @@ function createReport (reqBody) {
 function ecTextOf (logs) {
   let ecFilesText = ''
   for (const log of logs) {
-    ecFilesText = ecFilesText.concat(`,${log.path}`)
+    ecFilesText = ecFilesText.concat(`,${log.buildLogDir}`)
   }
   if (ecFilesText) {
     ecFilesText = ecFilesText.substring(1)
   }
   return ecFilesText
 }
-
-// function toLogJson(fileName) {
-//   console.log(fileName);
-//   var infos = fileName.replace(".ec", "").split("_");
-//   if (infos.length != 4) {
-//     return null;
-//   }
-//   var [appName,buildNum,phoneName,time] =infos
-//   console.log({appName,buildNum,phoneName,time});
-// }
-
-// queryLogList("fxj", "200");
-// queryReportList('FXJ', 200, 1, 100);
 
 function dateDir () {
   const date = new Date()
@@ -200,27 +183,6 @@ function queryLogBuildList (appName) {
   const buildNums = fs.readdirSync(logDir).filter((buildNum) => buildNum > 0).sort((a, b) => b - a)
   console.log(buildNums)
   return buildNums.map((num) => { return { buildNum: num, buildLogDir: `${logDir}/${num}` } })
-  //   const request = require('request');
-  //   console.log(buildNums);
-  // https://attacomsian.com/blog/node-http-requests-using-request-module
-  //   var jenkinsUrl =
-  //     'http://iosci.webuyops.com:8001/job/%E8%9C%82%E4%BA%AB%E5%AE%B6%E6%8E%8C%E6%9F%9C-Android/222/api/json?pretty=true&tree=fullDisplayName[*],number[*],timestamp[*],url[*],actions[causes[userName]]';
-
-//   request.get(
-//     jenkinsUrl,
-//     {
-//       auth: {
-//         username: 'canglong',
-//         password: '11017da435606c7249dd328422dfd245bf',
-//       },
-//     },
-//     (err, res, body) => {
-//       if (err) {
-//         return console.log(err);
-//       }
-//       console.log(body);
-//     }
-//   );
 }
 
 // function queryJenkinsBuildInfo(appName, buildNum) {
@@ -230,6 +192,7 @@ function queryLogBuildList (appName) {
 //   }
 // }
 // queryLogBuildList('FXJ')
+// queryReportList('FXJ')
 
 module.exports = {
   queryLogList,

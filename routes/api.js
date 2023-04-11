@@ -1,6 +1,5 @@
 const express = require('express')
 const router = express.Router()
-const code = require('../const/responseCode')
 const repo = require('../repository/androidRepo')
 
 function responseSuccess (res, entry) {
@@ -22,7 +21,7 @@ function responseFail (res, responseCode, message) {
 router.get('/log/list', function (req, res) {
   const { appName, buildNum } = req.query
   if (appName == null || buildNum == null) {
-    responseFail(res, code.LOG_IllegalArgument, 'appName 和 buildNum 不能为空')
+    responseFail(res, 1001, 'appName 和 buildNum 不能为空')
     return
   }
   const logs = repo.queryLogList(appName, buildNum)
@@ -31,10 +30,6 @@ router.get('/log/list', function (req, res) {
 
 router.get('/report/list', function (req, res) {
   let { appName, buildNum, pageIndex, pageSize } = req.query
-  //   if (appName == null ) {
-  //     responseFail(res, code.LOG_IllegalArgument, "appName  不能为空");
-  //     return;
-  //   }
   if (!appName) {
     appName = 'FXJ'
   }
