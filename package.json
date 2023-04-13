@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "export ENV=development && node ./bin/www",
-    "pm2-start": "export ENV=production && pm2 start  ./bin/www  --watch --name coverage-server"
+    "start-pm2": "export ENV=production && pm2 start  ./bin/www  --watch --name coverage-server"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
