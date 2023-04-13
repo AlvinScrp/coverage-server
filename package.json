@@ -3,9 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "export ENV=development && node ./bin/www",
     "start": "export ENV=development && node ./bin/www",
-    "start:prod": "export ENV=production && node ./bin/www"
+    "pm2-start": "export ENV=production && pm2 start  ./bin/www  --watch --name coverage-server"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
