@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
-const repo = require('../repository/androidRepo')
+const androidRepo = require('../repository/androidRepo')
+const iOSRepo = require('../repository/iOSRepo')
 
 function responseSuccess (res, entry) {
   res.send({
@@ -18,12 +19,17 @@ function responseFail (res, responseCode, message) {
   })
 }
 
+function repoOf (osType) {
+  return osType === 'Android' ? androidRepo : iOSRepo
+}
+
 router.get('/log/list', function (req, res) {
   const { appName, buildNum } = req.query
   if (appName == null || buildNum == null) {
     responseFail(res, 1001, 'appName 和 buildNum 不能为空')
     return
   }
+  const repo = repoOf(req.query.osType)
   const logs = repo.queryLogList(appName, buildNum)
   responseSuccess(res, { list: logs })
 })
@@ -33,11 +39,13 @@ router.get('/report/list', function (req, res) {
   if (!appName) {
     appName = 'FXJ'
   }
+  const repo = repoOf(req.query.osType)
   const reportJson = repo.queryReportList(appName, buildNum, pageIndex, pageSize)
   responseSuccess(res, reportJson)
 })
 
 router.get('/log/build/list', function (req, res) {
+  const repo = repoOf(req.query.osType)
   const builds = repo.queryLogBuildList(req.query.appName)
   responseSuccess(res, { list: builds })
 })
@@ -48,6 +56,7 @@ router.post('/report/create', function (req, res) {
 
   //     res.send('hello ajax')
   console.log('createReport 1')
+  const repo = repoOf(req.query.osType)
   repo.createReport(req.body)
   console.log('createReport 2')
   responseSuccess(res, 2)

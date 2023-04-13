@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "export ENV=development && node ./bin/www",
+    "dev": "export ENV=development && node ./bin/www",
     "start-pm2": "export ENV=production && pm2 start  ./bin/www  --watch --name coverage-server"
   },
   "dependencies": {
