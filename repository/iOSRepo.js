@@ -98,7 +98,7 @@ function toReportJson (dir, appName, fileName) {
     relativebuildNum,
     increment: relativebuildNum > 0,
     formatTime,
-    previewUrl: `http://iosci.webuyops.com:9003/iOS/${appName}/Result/${fileName}/html-${fileName}/index.html`
+    previewUrl: `http://iosci.webuyops.com:9000/report-html/iOS/${appName}/Result/${fileName}/html-${fileName}/index.html`
   }
 }
 

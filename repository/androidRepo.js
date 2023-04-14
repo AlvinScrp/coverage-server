@@ -102,7 +102,7 @@ function toReportJson (dir, appName, fileName) {
     relativebuildNum,
     increment: relativebuildNum > 0,
     formatTime,
-    previewUrl: `http://iosci.webuyops.com:9003/Android/report/${appName}/${fileName}/index.html`,
+    previewUrl: `http://iosci.webuyops.com:9000/report-html/Android/report/${appName}/${fileName}/index.html`,
     downloadUrl: `http://file-tx.webuyops.com/download/mobile-coco/${appName}-${fileName}.zip`
   }
 }
