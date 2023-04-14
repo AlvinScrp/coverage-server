@@ -56,10 +56,19 @@ router.post('/report/create', function (req, res) {
 
   //     res.send('hello ajax')
   console.log('createReport 1')
-  const repo = repoOf(req.query.osType)
-  repo.createReport(req.body)
+  const repo = repoOf(req.body.osType)
+  repo.createReport(req.body, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec stdout: ${stdout}`)
+      responseFail(res, 1002, `stdout:${stdout} \\\n stderr:${stderr}`)
+      return
+    }
+    console.log(`stdout: \n${stdout}`)
+    responseSuccess(res, 2)
+    console.log('createReport response')
+    //   console.error(`stderr: ${stderr}`);
+  })
   console.log('createReport 2')
-  responseSuccess(res, 2)
 })
 
 module.exports = router

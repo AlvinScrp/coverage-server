@@ -118,7 +118,7 @@ function toReportJson (dir, appName, fileName) {
 --gitPwd=mwq3012317217
  * @param {*} reqBody
  */
-function createReport (reqBody) {
+function createReport (reqBody, shellHandler) {
   let { appName, buildNum, logs, relativebuildNum } = reqBody
   if (!relativebuildNum) {
     relativebuildNum = 0
@@ -139,15 +139,8 @@ function createReport (reqBody) {
 
   console.log(`exec shell ==>\n${cmd}`)
 
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error: ${error}`)
-      return
-    }
-    console.log(`stdout: \n${stdout}`)
-    //   console.error(`stderr: ${stderr}`);
-  })
-  console.log('eneeeed========>')
+  exec(cmd, shellHandler)
+  console.log('shell end ========>')
 }
 function ecTextOf (logs) {
   let ecFilesText = ''

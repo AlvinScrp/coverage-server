@@ -106,25 +106,15 @@ function toReportJson (dir, appName, fileName) {
  * sh parseProfraw.sh FXJ 211 200
  * @param {*} reqBody
  */
-function createReport (reqBody) {
+function createReport (reqBody, shellHandler) {
   let { appName, buildNum, relativebuildNum } = reqBody
   if (!relativebuildNum) {
     relativebuildNum = 0
   }
-
   const cmd = `sh ${path.parseProfrawShell} ${appName}  ${buildNum} ${relativebuildNum}`
-
   console.log(`exec shell ==>\n${cmd}`)
-
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error: ${error}`)
-      return
-    }
-    console.log(`stdout: \n${stdout}`)
-    //   console.error(`stderr: ${stderr}`);
-  })
-  console.log('eneeeed========>')
+  exec(cmd, shellHandler)
+  console.log('shell end========>')
 }
 
 // log/Android/FXJ/
