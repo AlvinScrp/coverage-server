@@ -160,8 +160,8 @@ function dateDir () {
   const d = prefixZero(date.getDate())
   const h = prefixZero(date.getHours())
   const minute = prefixZero(date.getMinutes())
-  let second = prefixZero(date.getSeconds())
-  second = second < 10 ? '0' + second : second
+  const second = prefixZero(date.getSeconds())
+  //   second = second < 10 ? '0' + second : second
   return `${y}${m}${d}${h}${minute}${second}`
 }
 
