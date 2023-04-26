@@ -11,7 +11,8 @@
     "dotenv": "^16.0.3",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
-    "request": "^2.88.2"
+    "sync-request": "^6.1.0",
+    "urlencode": "^1.1.0"
   },
   "main": "app.js",
   "keywords": [],

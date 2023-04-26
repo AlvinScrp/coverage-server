@@ -1,10 +1,11 @@
 const coverageDir = process.env.COVERAGE_ROOT_DIR
 console.log(coverageDir)
-// const coverageDir = '/canglong/coverage'
+// const coverageDir = '/Users/canglong/Downloads/coverage2'
 // 备份文件：Android/backup/FXJ/100
 
 const path = {
   backupDir: coverageDir + '/Android/backup',
+  buildInfoDir: coverageDir + '/buildInfo/Android',
   reportDir: coverageDir + '/Android/report',
   logDir: coverageDir + '/log/Android',
   reportJarPath: coverageDir + '/Android/tools/report-0.0.3-alpha01-all.jar',
@@ -14,6 +15,9 @@ console.log('hello cccc')
 
 const fs = require('fs')
 const { exec } = require('node:child_process')
+// const request = require('request')
+const urlencode = require('urlencode')
+const request = require('sync-request')
 
 // 日志文件：log/Android/FXJ/200/FXJ-200-Redmi22041211AC-2303131412082.ec
 function queryLogList (appName, buildNum) {
@@ -172,20 +176,137 @@ function prefixZero (value) {
 // log/Android/FXJ/
 function queryLogBuildList (appName) {
   const logDir = `${path.logDir}/${appName}`
+  const backupDir = `${path.backupDir}/${appName}`
 
-  const buildNums = fs.readdirSync(logDir).filter((buildNum) => buildNum > 0).sort((a, b) => b - a)
+  const buildNums = fs.readdirSync(backupDir).filter((buildNum) => buildNum > 0).sort((a, b) => b - a)
   console.log(buildNums)
-  return buildNums.map((num) => { return { buildNum: num, buildLogDir: `${logDir}/${num}` } })
+  return buildNums.map((num) => {
+    const buildLogDir = `${logDir}/${num}`
+    const jenkinsInfo = queryJenkinsBuildInfo(appName, num)
+    const hasLogDir = fs.existsSync(buildLogDir)
+    return { buildNum: num, buildLogDir, hasLogDir, jenkinsInfo }
+  })
 }
 
-// function queryJenkinsBuildInfo(appName, buildNum) {
-//   var projectName = '';
-//   if (appName === 'FXJ') {
-//     projectName = '蜂享家掌柜-Android'
-//   }
-// }
+function queryJenkinsBuildInfo (appName, buildNum) {
+  console.log('queryJenkinsBuildInfo')
+  try {
+    const json = getJekinsBuildInfo(appName, buildNum)
+    if (json) {
+      const buildInfo = {
+        branch: '',
+        environment: '',
+        isDeploy: false,
+        userName: '',
+        number: 0,
+        url: '',
+        result: '',
+        timeFormat: '',
+        changes: []
+      }
+
+      json.actions.forEach(function (action) {
+        if (action._class === 'hudson.model.ParametersAction') {
+          action.parameters.forEach(function (p) {
+            if (p.name === 'appBranch') {
+              buildInfo.branch = p.value.startsWith('origin/') ? p.value.slice(7) : p.value
+            } else if (p.name === 'appEnvironment') {
+              buildInfo.environment = p.value
+            } else if (p.name === 'shouldDeploy') {
+              buildInfo.isDeploy = p.value
+            }
+          })
+        } else if (action._class === 'hudson.model.CauseAction') {
+          action.causes.forEach(function (cause) {
+            if (cause._class === 'hudson.model.Cause$UserIdCause') {
+              buildInfo.userName = cause.userName
+            }
+          })
+        }
+      })
+      json.changeSets.forEach(function (changeSet) {
+        if (changeSet._class === 'hudson.plugins.git.GitChangeSetList') {
+          changeSet.items.forEach(function (item) {
+            const { commitId, authorEmail, comment, date, id, msg, affectedPaths } = item
+            buildInfo.changes.push({ commitId, authorEmail, comment, date, id, msg, affectedPaths })
+          })
+        }
+      })
+      buildInfo.number = json.number
+      buildInfo.timeFormat = timeFormat(json.timestamp)
+      buildInfo.url = json.url
+      buildInfo.result = json.result
+      return buildInfo
+    }
+  } catch (error) {
+    console.error(error.message)
+  }
+  return null
+}
+
+function getJekinsBuildInfo (appName, buildNum) {
+  console.log('getJekinsBuildInfo')
+  if (!coverageDir) throw new Error('coverageDir undefined')
+  const infoDir = `${path.buildInfoDir}/${appName}`
+  const infoTxtPath = `${infoDir}/${buildNum}.txt`
+
+  let info = null
+  try {
+    if (fs.existsSync(infoTxtPath)) {
+      const infoJson = fs.readFileSync(infoTxtPath, 'utf-8')
+      try {
+        info = JSON.parse(infoJson)
+        if (info.number && info.timestamp && info.url) {
+          console.log(`exists info: ${infoTxtPath}`)
+          return info
+        }
+      } catch (jsonError) {
+        console.log(jsonError.message)
+      }
+    }
+
+    let projectName = ''
+    if (appName === 'FXJ') {
+      projectName = '蜂享家掌柜-Android'
+    } else if (appName === 'HYK') {
+      projectName = '好衣库-Android'
+    }
+    const encodeProjectName = urlencode(projectName)
+    const url = `http://canglong:1178849ec1d2f2ce79b75c9dc59cc41e1a@iosci.webuyops.com:8001/job/${encodeProjectName}/${buildNum}/api/json?pretty=true&tree=number,displayName,timestamp,url,result,actions[parameters[name,value],causes[userName]],changeSets[items[*]]`
+    console.log(url)
+    const res = request('GET', url)
+    const infoJson = res.getBody().toString()
+    info = JSON.parse(infoJson)
+    try {
+      if (!fs.existsSync(infoDir)) {
+        fs.mkdirSync(infoDir, { recursive: true })
+      }
+      fs.writeFileSync(infoTxtPath, infoJson)
+    } catch (fileError) {
+      console.error(fileError.message)
+    }
+    return info
+  } catch (error) {
+    console.error(error.message)
+  }
+  return null
+}
+
+function timeFormat (timestamp) {
+  const date = new Date(timestamp)
+  const y = date.getFullYear()
+  const m = prefixZero(date.getMonth() + 1)
+  const d = prefixZero(date.getDate())
+  const h = prefixZero(date.getHours())
+  const minute = prefixZero(date.getMinutes())
+  const second = prefixZero(date.getSeconds())
+  //   second = second < 10 ? '0' + second : second
+  return `${y}年${m}月${d}日${h}:${minute}:${second}`
+}
 // queryLogBuildList('FXJ')
 // queryReportList('FXJ')
+// const info = queryJenkinsBuildInfo('FXJ', 253)
+// console.log(info)
 
 module.exports = {
   queryLogList,
